@@ -2,7 +2,7 @@ package com.mashibing.populateBean.annotation;
 
 import org.springframework.stereotype.Repository;
 
-@Repository
+//@Repository
 public class PersonDao {
 
 }

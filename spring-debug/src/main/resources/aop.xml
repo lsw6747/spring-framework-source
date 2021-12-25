@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:msb="http://www.mashibing.com/schema/user"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context  http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.mashibing.com/schema/user http://www.mashibing.com/schema/user.xsd http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd">
+    <bean id="logUtil" class="com.mashibing.aop.util.LogUtil"/>
+    <bean id="myCalculator" class="com.mashibing.aop.service.MyCalculator"/>
+    <bean id="global" class="com.mashibing.aop.util.LogUtil"/>
+    <aop:config>
+        <aop:aspect ref="logUtil">
+            <aop:pointcut id="myPoint" expression="execution(Integer com.mashibing.aop.service.MyCalculator.*(..))"/>
+            <aop:around method="around" pointcut-ref="myPoint"/>
+            <aop:before method="start" pointcut-ref="myPoint"/>
+            <aop:after method="logFinally" pointcut-ref="myPoint"/>
+            <aop:after-returning method="stop" pointcut-ref="myPoint" returning="result"/>
+            <aop:after-throwing method="logException" pointcut-ref="myPoint" throwing="e"/>
+        </aop:aspect>
+        <aop:aspect ref="global"/>
+    </aop:config>
+</beans>
