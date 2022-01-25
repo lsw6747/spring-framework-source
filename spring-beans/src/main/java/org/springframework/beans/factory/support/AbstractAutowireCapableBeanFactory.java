@@ -666,7 +666,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		BeanWrapper instanceWrapper = null;
 		// 获取factoryBean实例缓存
 		if (mbd.isSingleton()) {
-			// 如果是单例对象，从factorybean实例缓存中移除当前bean定义信息
+			// 如果是单例对象，从factoryBean实例缓存中移除当前bean定义信息
 			instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);
 		}
 		// 没有就创建实例
@@ -712,9 +712,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			// 为避免后期循环依赖，可以在bean初始化完成前将创建实例的ObjectFactory加入工厂
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 
-			//只保留二级缓存，不向三级缓存中存放对象
-//			earlySingletonObjects.put(beanName,bean);
-//			registeredSingletons.add(beanName);
+			// 只保留二级缓存，不向三级缓存中存放对象
+			// earlySingletonObjects.put(beanName,bean);
+			// registeredSingletons.add(beanName);
 
 		}
 
@@ -1284,7 +1284,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// 如果beforeInstantiationResolved值为null或者true，那么表示尚未被处理，进行后续的处理
 		if (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) {
 			// Make sure bean class is actually resolved at this point.
-			// 确认beanclass确实在此处进行处理
+			// 确认beanClass确实在此处进行处理
 			// 判断当前mbd是否是合成的，只有在实现aop的时候synthetic的值才为true，并且是否实现了InstantiationAwareBeanPostProcessor接口
 			if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 				// 获取类型

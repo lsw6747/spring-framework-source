@@ -272,8 +272,9 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 * @return the registered singleton object
 	 */
 	public Object getSingleton(String beanName, ObjectFactory<?> singletonFactory) {
+		// 如果beanName为null，则抛出异常
 		Assert.notNull(beanName, "Bean name must not be null");
-		// 全局变量需要同步
+		// 使用单例对象的高速缓存Map作为锁，保证线程同步
 		synchronized (this.singletonObjects) {
 			// 首先检查一级缓存中是否存在对应的bean
 			Object singletonObject = this.singletonObjects.get(beanName);
@@ -290,21 +291,28 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				}
 				// 记录当前对象的加载状态，做个正在创建的标记
 				beforeSingletonCreation(beanName);
+				// 表示生成了新的单例对象的标记，默认为false，表示没有生成新的单例对象
 				boolean newSingleton = false;
+				// 有抑制异常记录标记，没有时为true，否则为false
 				boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
+				// 如果没有抑制异常记录
 				if (recordSuppressedExceptions) {
+					// 对抑制的异常列表进行实例化（LinkedHashSet）
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
-					// 开始进行bean对象的创建
+					// 开始进行bean对象的创建，从单例工厂中获取
 					singletonObject = singletonFactory.getObject();
-					// 只要获取了就是新的单例对象
+					// 生成了新的单例对象的标记为true。表示生成了新的单例对象
 					newSingleton = true;
 				}
 				catch (IllegalStateException ex) {
 					// Has the singleton object implicitly appeared in the meantime ->
 					// if yes, proceed with it since the exception indicates that state.
+					// 同时，单例对象是否隐式出现 -> 如果是，请继续操作，因为异常表明该状态
+					// 尝试从单例对象的高速缓存Map中获取beanName的单例对象
 					singletonObject = this.singletonObjects.get(beanName);
+					// 如果获取失败，抛出异常
 					if (singletonObject == null) {
 						throw ex;
 					}

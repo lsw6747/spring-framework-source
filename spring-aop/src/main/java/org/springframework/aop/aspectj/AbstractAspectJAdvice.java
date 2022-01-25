@@ -77,11 +77,17 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 	 * Spring AOP invocation.
 	 */
 	public static JoinPoint currentJoinPoint() {
+		// 获取当前的MethodInvocation，即ReflectiveMethodInvocation的实例
 		MethodInvocation mi = ExposeInvocationInterceptor.currentInvocation();
 		if (!(mi instanceof ProxyMethodInvocation)) {
 			throw new IllegalStateException("MethodInvocation is not a Spring ProxyMethodInvocation: " + mi);
 		}
 		ProxyMethodInvocation pmi = (ProxyMethodInvocation) mi;
+		// JOINT_POINT_KEY的值为JintPoint.class.getName()
+		// 从ReflectiveMethodInvocation中获取JointPoint的值
+		// 这里在第一次获取的时候，获取到的JointPoint的是null
+		// 然后把下面创建的MethodInvocationProceedingJointPoint放入到ReflectiveMethodInvocation的userAttributes中
+		// 这样在第二次获取的时候，就会获取到这个MethodInvocationProceedingJointPoint
 		JoinPoint jp = (JoinPoint) pmi.getUserAttribute(JOIN_POINT_KEY);
 		if (jp == null) {
 			jp = new MethodInvocationProceedingJoinPoint(pmi);
@@ -635,13 +641,15 @@ public abstract class AbstractAspectJAdvice implements Advice, AspectJPrecedence
 
 	protected Object invokeAdviceMethodWithGivenArgs(Object[] args) throws Throwable {
 		Object[] actualArgs = args;
+		// 判断通知方法是否有参数
 		if (this.aspectJAdviceMethod.getParameterCount() == 0) {
 			actualArgs = null;
 		}
 		try {
 			ReflectionUtils.makeAccessible(this.aspectJAdviceMethod);
 			// TODO AopUtils.invokeJoinpointUsingReflection
-			// 激活增强方法
+			// 反射调用通知方法
+			// this.aspectInstanceFactory.getAspectInstance()获取的是切面的实例
 			return this.aspectJAdviceMethod.invoke(this.aspectInstanceFactory.getAspectInstance(), actualArgs);
 		}
 		catch (IllegalArgumentException ex) {

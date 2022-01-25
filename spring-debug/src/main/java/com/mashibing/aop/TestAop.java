@@ -1,6 +1,7 @@
 package com.mashibing.aop;
 
 import com.mashibing.aop.service.MyCalculator;
+import org.springframework.cglib.core.DebuggingClassWriter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
@@ -14,6 +15,8 @@ public class TestAop {
     }
 
     public static void saveGeneratedCGlibProxyFiles(String dir) throws Exception {
+        System.setProperty(DebuggingClassWriter.DEBUG_LOCATION_PROPERTY, "D:/dynamic");
+        System.getProperties().put("sun.misc.ProxyGenerator.saveGeneratedFiles", true);
         Field field = System.class.getDeclaredField("props");
     }
 }

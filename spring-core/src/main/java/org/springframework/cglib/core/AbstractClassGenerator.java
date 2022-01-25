@@ -16,6 +16,8 @@
 
 package org.springframework.cglib.core;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.lang.ref.WeakReference;
 import java.security.ProtectionDomain;
 import java.util.HashSet;
@@ -357,6 +359,20 @@ abstract public class AbstractClassGenerator<T> implements ClassGenerator {
 			}
 			byte[] b = strategy.generate(this);
 			String className = ClassNameReader.getClassName(new ClassReader(b));
+			File file = new File("D:/dynamic/", className + ".class");
+			if (!file.getParentFile().exists()) {
+				file.mkdirs();
+			}
+			if (file.exists()) {
+				file.delete();
+			}
+			file.createNewFile();
+			try (FileOutputStream fos = new FileOutputStream(file)) {
+				fos.write(b);
+				fos.flush();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			ProtectionDomain protectionDomain = getProtectionDomain();
 			synchronized (classLoader) { // just in case
 				// SPRING PATCH BEGIN

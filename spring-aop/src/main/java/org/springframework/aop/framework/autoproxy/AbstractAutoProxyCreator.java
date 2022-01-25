@@ -235,6 +235,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 	/**
 	 * 放到集合中，然后判断要不要包装，其实就是在循环依赖注入属性的时候如果有AOP代理的话，也会进行代理，然后返回
+	 *
 	 * @param bean the raw bean instance
 	 * @param beanName the name of the bean
 	 * @return
@@ -306,7 +307,10 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) {
 		if (bean != null) {
 			// 根据给定bean的name和class构建出一个key
+			// 获取当前bean的key: 如果beanName不为空, 则以beanName为key, 如果为FactoryBean类型, 前面还会添加&符号
+			// 如果beanName为空, 则以当前bean对应的class为key
 			Object cacheKey = getCacheKey(bean.getClass(), beanName);
+			// 判断当前bean是否正在被代理, 如果正在被代理则不进行封装
 			if (this.earlyProxyReferences.remove(cacheKey) != bean) {
 				// 如果它需要被代理，则需要封装指定的bean
 				return wrapIfNecessary(bean, beanName, cacheKey);
@@ -351,25 +355,30 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		if (StringUtils.hasLength(beanName) && this.targetSourcedBeans.contains(beanName)) {
 			return bean;
 		}
-		// 如果不需要增强，则直接返回
+		// 这里adviseBeans缓存了已经进行了代理的bean，如果缓存中存在，则可以直接返回
 		if (Boolean.FALSE.equals(this.advisedBeans.get(cacheKey))) {
 			return bean;
 		}
 		// 判断给定的bean类是否代表一个基础设施类，基础设施类不应代理，或者配置了指定bean不需要自动代理
+		// 这里isInfrastructureClass()用于判断当前bean是否为Spring系统自带的bean.
+		// 自带的bean是不用进行代理的; shouldSkip()则用于判断当前bean是否应该被略过
 		if (isInfrastructureClass(bean.getClass()) || shouldSkip(bean.getClass(), beanName)) {
+			// 对当前bean进行缓存
 			this.advisedBeans.put(cacheKey, Boolean.FALSE);
 			return bean;
 		}
 
 		// Create proxy if we have advice.
-		// 如果存在增强方法则创建代理
+		// 获取当前bean的Advices和Advisors
 		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
-		// 如果获取到了增强则需要针对增强创建代理
+		// 判断是否不代理
 		if (specificInterceptors != DO_NOT_PROXY) {
+			// 对当前bean的代理进行缓存
 			this.advisedBeans.put(cacheKey, Boolean.TRUE);
-			// 创建代理
+			// 根据获取到的Advices和Advisors为当前bean生成代理对象
 			Object proxy = createProxy(
 					bean.getClass(), beanName, specificInterceptors, new SingletonTargetSource(bean));
+			// 缓存数生成的代理bean的类型，并且返回生成的代理bean
 			this.proxyTypes.put(cacheKey, proxy.getClass());
 			return proxy;
 		}
@@ -479,6 +488,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		proxyFactory.copyFrom(this);
 		// 决定对于给定的bean是否应该使用targetClass而不是他的接口代理，检查proxyTargetClass设置以及preserverTargetClass属性
 		if (!proxyFactory.isProxyTargetClass()) {
+			// 判断是使用jdk动态代理还是cglib
 			if (shouldProxyTargetClass(beanClass, beanName)) {
 				proxyFactory.setProxyTargetClass(true);
 			}
@@ -502,6 +512,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			proxyFactory.setPreFiltered(true);
 		}
 
+		// 真正创建代理对象
 		return proxyFactory.getProxy(getProxyClassLoader());
 	}
 

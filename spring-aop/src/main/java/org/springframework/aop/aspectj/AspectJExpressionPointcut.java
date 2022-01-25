@@ -190,11 +190,14 @@ public class AspectJExpressionPointcut extends AbstractExpressionPointcut
 	 * lazily building the underlying AspectJ pointcut expression.
 	 */
 	private PointcutExpression obtainPointcutExpression() {
+		// 如果没有expression的值的话直接抛出异常
 		if (getExpression() == null) {
 			throw new IllegalStateException("Must set property 'expression' before attempting to match");
 		}
 		if (this.pointcutExpression == null) {
+			// 选择类加载器
 			this.pointcutClassLoader = determinePointcutClassLoader();
+			// 构建PointcutExpression的实例
 			this.pointcutExpression = buildPointcutExpression(this.pointcutClassLoader);
 		}
 		return this.pointcutExpression;
@@ -267,6 +270,7 @@ public class AspectJExpressionPointcut extends AbstractExpressionPointcut
 		return obtainPointcutExpression();
 	}
 
+	// 这是ClassFilter的匹配类，借助PointcutExpression#couldMatchJoinPointsInType去匹配
 	@Override
 	public boolean matches(Class<?> targetClass) {
 		PointcutExpression pointcutExpression = obtainPointcutExpression();

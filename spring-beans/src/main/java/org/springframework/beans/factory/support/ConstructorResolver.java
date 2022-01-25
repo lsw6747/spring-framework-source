@@ -242,7 +242,7 @@ class ConstructorResolver {
 			int minTypeDiffWeight = Integer.MAX_VALUE;
 			// 不明确的构造函数集合，正常情况下差异值不可能相同
 			Set<Constructor<?>> ambiguousConstructors = null;
-			//定义一个用于UnsatisfiedDependencyException的列表
+			// 定义一个用于UnsatisfiedDependencyException的列表
 			LinkedList<UnsatisfiedDependencyException> causes = null;
 
 			// 循环候选的构造函数
@@ -800,6 +800,7 @@ class ConstructorResolver {
 
 	/**
 	 * 将BeanDefinition中的构造函数参数解析为resolvedValues对象
+	 * 将cargs解析后的值保存到resolveValues中，并返回解析后的最小（索引参数值数+泛型参数值数）
 	 *
 	 * Resolve the constructor arguments for this bean into the resolvedValues object.
 	 * This may involve looking up other beans.
@@ -808,66 +809,82 @@ class ConstructorResolver {
 	private int resolveConstructorArguments(String beanName, RootBeanDefinition mbd, BeanWrapper bw,
 			ConstructorArgumentValues cargs, ConstructorArgumentValues resolvedValues) {
 
+		// 获取Bean工厂的类型转换器
 		TypeConverter customConverter = this.beanFactory.getCustomTypeConverter();
+		// 定义一个TypeConvert对象。如果有customConverter。就引用customConverter；否则引用bw
 		TypeConverter converter = (customConverter != null ? customConverter : bw);
+		// BeanDefinitionValueResolver：在bean工厂实现中使用Helper类，它将beanDefinition对象中包含的值解析为应用于目标bean实例的实际值
+		// 新建一个BeanDefinitionValueResolver对象
 		BeanDefinitionValueResolver valueResolver =
 				new BeanDefinitionValueResolver(this.beanFactory, beanName, mbd, converter);
 
+		// 返回此实例中保存的参数值的数量，同时计算索引参数值和泛型参数值
+		// 获取cargs的参数值数量和泛型参数值数量作为最小（索引参数值数+泛型参数值数）
 		// beanDefinition中的参数的个数为最低参数个数
 		int minNrOfArgs = cargs.getArgumentCount();
 
-		// 遍历BeanDefinition中的map参数集合
+		// ConstructorArgumentValues.ValueHolder: 构造函数参数值的Holder，带有可选的type属性，指示实际构造函数参数的目标类型
+		// 遍历cargs的所封装的索引参数值的Map，元素为entry(key=参数值的参数索引, value=ConstructorArgumentValues.ValueHolder对象)
 		for (Map.Entry<Integer, ConstructorArgumentValues.ValueHolder> entry : cargs.getIndexedArgumentValues().entrySet()) {
-			// 获取参数的坐标
+			// 获取参数值的参数索引
 			int index = entry.getKey();
+			// 如果index小于0
 			if (index < 0) {
 				throw new BeanCreationException(mbd.getResourceDescription(), beanName,
 						"Invalid constructor argument index: " + index);
 			}
-			/**
-			 * 如果坐标大于参数个数，则参数个数+1
-			 * 这里并不直接将坐标设置为参数个数，是遍历中存在一个大于参数个数的坐标
-			 * 就证明多一个参数，不必直接赋值
-			 */
+
+			// 如果坐标大于参数个数，则参数个数+1
+			// 这里并不直接将坐标设置为参数个数，是遍历中存在一个大于参数个数的坐标
+			// 就证明多一个参数，不必直接赋值
 			if (index + 1 > minNrOfArgs) {
 				minNrOfArgs = index + 1;
 			}
+			// 获取ConstructorArgumentValues.ValueHolder对象
 			ConstructorArgumentValues.ValueHolder valueHolder = entry.getValue();
-			/**
-			 * 参数值是否需要转换
-			 * 不转换则直接给参数Holder
-			 * 否则转换后再给
-			 */
+
+			// 参数值是否需要转换，不转换则直接给参数Holder，否则转换后再给
 			if (valueHolder.isConverted()) {
+				// 将index和valueHolder添加到resolvedValues所封装的索引参数值的Map中
 				resolvedValues.addIndexedArgumentValue(index, valueHolder);
 			}
 			else {
+				// 使用valueResolver解析出的valueHolder实例的构造函数参数值所封装的对象
 				Object resolvedValue =
 						valueResolver.resolveValueIfNecessary("constructor argument", valueHolder.getValue());
+				// 使用valueHolder所封装的type，name属性以及解析出来的resolvedValue构造出一个CnstructorArgumentValues.ValueHolder对象
 				ConstructorArgumentValues.ValueHolder resolvedValueHolder =
 						new ConstructorArgumentValues.ValueHolder(resolvedValue, valueHolder.getType(), valueHolder.getName());
+				// 将valueHolder最为resolverValueHolder的配置源对象设置到resolverValueHolder中
 				resolvedValueHolder.setSource(valueHolder);
+				// 将index和valueHolder添加到resolvedValues所封装的索引参数值的Map中
 				resolvedValues.addIndexedArgumentValue(index, resolvedValueHolder);
 			}
 		}
 
-		/**
-		 * 遍历List集合，逻辑和遍历Map集合一样，不需要转换的直接给定，否则转换后给定
-		 */
+
+		// 遍历List集合，逻辑和遍历Map集合一样，不需要转换的直接给定，否则转换后给定
 		for (ConstructorArgumentValues.ValueHolder valueHolder : cargs.getGenericArgumentValues()) {
+			// 如果valueHolder已经包含转换后的值
 			if (valueHolder.isConverted()) {
+				// 将index和valueHolder添加到rresolvedValues的泛型参数值的列表中
 				resolvedValues.addGenericArgumentValue(valueHolder);
 			}
 			else {
+				// 使用valueResolver解析出的valueHolder实例的构造函数参数值所封装的对象
 				Object resolvedValue =
 						valueResolver.resolveValueIfNecessary("constructor argument", valueHolder.getValue());
+				// 使用valueHolder所封装的type，name属性以及解析出来的resolvedValue构造出一个CnstructorArgumentValues.ValueHolder对象
 				ConstructorArgumentValues.ValueHolder resolvedValueHolder = new ConstructorArgumentValues.ValueHolder(
 						resolvedValue, valueHolder.getType(), valueHolder.getName());
+				// 将valueHolder最为resolverValueHolder的配置源对象设置到resolverValueHolder中
 				resolvedValueHolder.setSource(valueHolder);
+				// 将index和valueHolder添加到resolvedValues所封装的索引参数值的Map中
 				resolvedValues.addGenericArgumentValue(resolvedValueHolder);
 			}
 		}
 
+		// 返回最想(索引参数值数+泛型参数值数)
 		return minNrOfArgs;
 	}
 
